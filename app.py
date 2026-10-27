@@ -12,12 +12,22 @@ app = Flask(__name__)
 app.secret_key = 'change-this-for-a-real-deployment'
 
 DESTINATIONS = [
-    {'id': 1, 'slug': 'dal-lake', 'name': 'Dal Lake', 'location': 'Srinagar, Kashmir', 'category': 'Lake', 'description': 'A serene lake known for traditional houseboats, shikaras, floating markets, and mountain reflections.', 'image': 'dal-lake.svg', 'lat': 34.0837, 'lng': 74.8753, 'tip': 'Try an early-morning shikara ride and check local weather before heading out.'},
-    {'id': 2, 'slug': 'gulmarg', 'name': 'Gulmarg', 'location': 'Baramulla, Kashmir', 'category': 'Mountain', 'description': 'A high-altitude getaway known for wide meadows, snowy winters, mountain views, and the gondola.', 'image': 'gulmarg.svg', 'lat': 34.0484, 'lng': 74.3805, 'tip': 'Weather can change quickly. Check gondola operations and road conditions before travel.'},
-    {'id': 3, 'slug': 'pahalgam', 'name': 'Pahalgam', 'location': 'Anantnag, Kashmir', 'category': 'Valley', 'description': 'A green valley with the Lidder River, pine forests, mountain scenery, and walking routes.', 'image': 'pahalgam.svg', 'lat': 34.0161, 'lng': 75.3150, 'tip': 'Keep time for riverside walks and carry a light jacket.'},
-    {'id': 4, 'slug': 'mughal-gardens', 'name': 'Mughal Gardens', 'location': 'Srinagar, Kashmir', 'category': 'Garden', 'description': 'Terraced gardens, flowing water channels, historic design, and views towards Dal Lake.', 'image': 'gardens.svg', 'lat': 34.0916, 'lng': 74.8800, 'tip': 'Spring and early summer are popular times for flowering gardens.'},
-    {'id': 5, 'slug': 'sonamarg', 'name': 'Sonamarg', 'location': 'Ganderbal, Kashmir', 'category': 'Valley', 'description': 'A dramatic mountain valley with alpine scenery, rivers, and seasonal excursions.', 'image': 'sonamarg.svg', 'lat': 34.3042, 'lng': 75.2931, 'tip': 'Check seasonal road access and local advisories before planning a trip.'},
-    {'id': 6, 'slug': 'yusmarg', 'name': 'Yusmarg', 'location': 'Budgam, Kashmir', 'category': 'Valley', 'description': 'A peaceful meadow surrounded by pine-covered hills, suited to slow days in nature.', 'image': 'yusmarg.svg', 'lat': 33.8350, 'lng': 74.6620, 'tip': 'Pack water and snacks and check return transport arrangements ahead of time.'},
+    {'id': 1, 'slug': 'dal-lake', 'name': 'Dal Lake', 'location': 'Srinagar, Kashmir', 'category': 'Lake', 'description': 'A serene lake known for traditional houseboats, shikaras, floating markets, and mountain reflections.', 'image': 'dal-lake.svg','image_url': 'https://images.unsplash.com/photo-1569852837213-00d97a707a83?auto=format&fit=crop&w=1200&q=85', 'lat': 34.0837, 'lng': 74.8753, 'tip': 'Try an early-morning shikara ride and check local weather before heading out.'},
+    {'id': 2, 'slug': 'gulmarg', 'name': 'Gulmarg', 'location': 'Baramulla, Kashmir', 'category': 'Mountain', 'description': 'A high-altitude getaway known for wide meadows, snowy winters, mountain views, and the gondola.', 'image':'gulmarg.svg',
+'image_url': 'https://images.unsplash.com/photo-1771761597326-a1a418653554?auto=format&fit=crop&w=1200&q=85',
+'lat': 34.0484, 'lng': 74.3805, 'tip': 'Weather can change quickly. Check gondola operations and road conditions before travel.'},
+    {'id': 3, 'slug': 'pahalgam', 'name': 'Pahalgam', 'location': 'Anantnag, Kashmir', 'category': 'Valley', 'description': 'A green valley with the Lidder River, pine forests, mountain scenery, and walking routes.','image': 'pahalgam.svg',
+'image_url': 'https://images.unsplash.com/photo-1699382726677-e489c4b6e7ca?auto=format&fit=crop&w=1200&q=85',
+'lat': 34.0161, 'lng': 75.3150, 'tip': 'Keep time for riverside walks and carry a light jacket.'},
+    {'id': 4, 'slug': 'mughal-gardens', 'name': 'Mughal Gardens', 'location': 'Srinagar, Kashmir', 'category': 'Garden', 'description': 'Terraced gardens, flowing water channels, historic design, and views towards Dal Lake.', 'image': 'mughal-gardens.svg',
+'image_url': 'https://images.unsplash.com/photo-1671520428927-d932a51c98da?auto=format&fit=crop&w=1200&q=85',
+'lat': 34.0916, 'lng': 74.8800, 'tip': 'Spring and early summer are popular times for flowering gardens.'},
+    {'id': 5, 'slug': 'sonamarg', 'name': 'Sonamarg', 'location': 'Ganderbal, Kashmir', 'category': 'Valley', 'description': 'A dramatic mountain valley with alpine scenery, rivers, and seasonal excursions.', 'image': 'sonamarg.svg',
+'image_url': 'https://images.unsplash.com/photo-1747672474279-c6f5d2b4e67d?auto=format&fit=crop&w=1200&q=85',
+'lat': 34.3042,'lng': 75.2931, 'tip': 'Check seasonal road access and local advisories before planning a trip.'},
+    {'id': 6, 'slug': 'yusmarg', 'name': 'Yusmarg', 'location': 'Budgam, Kashmir', 'category': 'Valley', 'description': 'A peaceful meadow surrounded by pine-covered hills, suited to slow days in nature.', 'image': 'yusmarg.svg',
+'image_url': 'https://images.unsplash.com/photo-1626012871654-33fd43d88a54?auto=format&fit=crop&w=1200&q=85',
+'lat': 33.8350, 'lng': 74.6620, 'tip': 'Pack water and snacks and check return transport arrangements ahead of time.'},
 ]
 
 
