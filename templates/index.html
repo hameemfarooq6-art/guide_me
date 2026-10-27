@@ -1,10 +1,794 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Travel Explorer — Discover Kashmir</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
-<header class="nav"><a class="brand" href="{{ url_for('home') }}"><span class="logo">✦</span> Travel Explorer</a><nav><a href="#destinations">Explore</a><a href="#reviews">Reviews</a><a href="#about">About</a></nav><a class="button primary" href="#write-review">＋ Write a review</a></header>
-<main><section class="hero"><div class="hero-content"><p class="eyebrow">YOUR NEXT STORY STARTS HERE</p><h1>Discover the<br>beauty of Kashmir.</h1><p class="intro">Explore unforgettable places, discover local favourites, and plan your next adventure with traveller reviews.</p><form class="search" method="get" action="{{ url_for('home') }}"><input type="search" name="q" value="{{ q }}" placeholder="Search Dal Lake, Gulmarg, Pahalgam…" aria-label="Search destinations"><button class="button primary">Explore ↗</button></form><div class="trust">✦ Curated places　 ★ Community ratings　 ⌖ Map links</div></div></section>
-{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-wrap">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
-<section class="section" id="destinations"><div class="section-head"><div><p class="eyebrow green">FIND YOUR SOMEWHERE</p><h2>Popular destinations</h2><p class="muted">Explore places worth adding to your Kashmir itinerary.</p></div></div><div class="filters">{% for cat in categories %}<a class="chip {% if cat == category %}active{% endif %}" href="{{ url_for('home', q=q, category=cat) }}">{{ cat }}</a>{% endfor %}</div><div class="cards">{% for d in destinations %}<article class="card"><a class="cover" href="{{ url_for('destination_detail', slug=d.slug) }}"><img src="{{ d.image_url or url_for('static', filename='images/' + d.image) }}" alt="Scenery of {{ d.name }}"><span class="tag">{{ d.category }}</span></a><div class="card-body"><div class="location">⌖ {{ d.location }}</div><div class="title-row"><h3>{{ d.name }}</h3><span class="rating">★ {{ '%.1f'|format(d.rating) if d.rating else 'New' }}</span></div><p>{{ d.description }}</p><div class="card-foot"><span>{{ d.review_count }} reviews</span><a href="{{ url_for('destination_detail', slug=d.slug) }}">Explore place ↗</a></div></div></article>{% else %}<p>No destinations found. Try another search.</p>{% endfor %}</div></section>
-<section class="features" id="about"><div><span class="feature-icon">⌖</span><strong>Explore with context</strong><p>Read descriptions, check location details, and open map directions.</p></div><div><span class="feature-icon">★</span><strong>Community reviews</strong><p>Leave a star rating and practical tips for future travellers.</p></div><div><span class="feature-icon">▧</span><strong>Photo sharing</strong><p>Add a travel photo to your review and share your experience.</p></div></section>
-<section class="section reviews" id="reviews"><div class="section-head"><div><p class="eyebrow green">TRAVEL STORIES</p><h2>Recent reviews</h2><p class="muted">Experiences shared by visitors.</p></div></div><div class="review-grid">{% for r in recent_reviews %}<article class="review"><div class="person"><span class="avatar">{{ r.name[0]|upper }}</span><div><strong>{{ r.name }}</strong><small>{{ r.created_at }}</small></div></div><div class="stars">{{ '★' * r.rating }}{{ '☆' * (5-r.rating) }}</div><p>{{ r.comment }}</p>{% if r.photo_filename %}<img class="review-photo" src="{{ url_for('static', filename='uploads/' + r.photo_filename) }}" alt="Photo shared in review">{% endif %}<a class="review-place" href="{{ url_for('destination_detail', slug=r.destination_slug) }}">⌖ {{ r.destination_name }}</a></article>{% else %}<p>Be the first to leave a review.</p>{% endfor %}</div></section>
-<section class="bottom-cta"><div><h2>Have a place you love?</h2><p>Help another traveller discover it. Share a rating, a tip, or a favourite photo.</p></div><a class="button white" href="#write-review">Write a review ↗</a></section>
-<section class="section write" id="write-review"><p class="eyebrow green">YOUR EXPERIENCE MATTERS</p><h2>Write a review</h2><p class="muted">Your review is saved to the local SQLite database in this demo.</p><form class="review-form" action="{{ url_for('add_review') }}" method="post" enctype="multipart/form-data"><label>Your name<input name="name" maxlength="45" required placeholder="e.g. Hameem"></label><label>Destination<select name="destination_id" required>{% for d in destinations %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}</select></label><label>Rating<select name="rating" required><option value="5">★★★★★ — Excellent</option><option value="4">★★★★☆ — Very good</option><option value="3">★★★☆☆ — Good</option><option value="2">★★☆☆☆ — Fair</option><option value="1">★☆☆☆☆ — Poor</option></select></label><label>Photo (optional)<input type="file" name="photo" accept="image/png,image/jpeg,image/webp,image/gif"><small>PNG/JPG/WEBP/GIF, maximum 2 MB.</small></label><label class="full">Your review<textarea name="comment" minlength="8" maxlength="1000" required placeholder="Share what you liked, useful tips, or what visitors should know…"></textarea></label><button class="button primary" type="submit">Submit review ↗</button></form></section></main>
-<footer>✦ <strong>Travel Explorer</strong> · A student-built travel discovery project <span>Made to explore Kashmir · Local prototype</span></footer></body></html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Travel Explorer | Discover Kashmir</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f8f5;
+            color: #20352a;
+            line-height: 1.6;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
+        }
+
+        .container {
+            width: min(1100px, 92%);
+            margin: auto;
+        }
+
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #e0e9e1;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .navbar {
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            color: #176b50;
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        nav a:hover {
+            color: #176b50;
+        }
+
+        .button {
+            display: inline-block;
+            border: 0;
+            border-radius: 9px;
+            padding: 11px 17px;
+            background: #176b50;
+            color: #ffffff;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .button:hover {
+            background: #10533d;
+        }
+
+        .button-light {
+            background: #e5f0e8;
+            color: #176b50;
+        }
+
+        .hero {
+            padding: 70px 0;
+            background: linear-gradient(135deg, #123f32, #28775a);
+            color: white;
+        }
+
+        .hero h1 {
+            max-width: 700px;
+            margin: 0 0 15px;
+            font-size: clamp(36px, 6vw, 58px);
+            line-height: 1.12;
+        }
+
+        .hero p {
+            max-width: 650px;
+            color: #e0eee5;
+            margin-bottom: 25px;
+        }
+
+        .search-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-width: 650px;
+        }
+
+        .search-form input {
+            flex: 1;
+            min-width: 180px;
+            border: 0;
+            border-radius: 9px;
+            padding: 13px;
+        }
+
+        .section {
+            padding: 48px 0;
+        }
+
+        .section-heading {
+            margin-bottom: 25px;
+        }
+
+        .section-heading h2 {
+            margin: 0 0 5px;
+            font-size: 30px;
+        }
+
+        .muted {
+            color: #68786d;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-bottom: 25px;
+        }
+
+        .filter-link {
+            padding: 8px 13px;
+            border: 1px solid #d7e3d9;
+            border-radius: 30px;
+            background: white;
+            font-size: 13px;
+        }
+
+        .filter-link:hover,
+        .filter-link.active {
+            background: #176b50;
+            color: white;
+            border-color: #176b50;
+        }
+
+        .destination-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 22px;
+        }
+
+        .destination-card {
+            overflow: hidden;
+            background: white;
+            border: 1px solid #e0e9e1;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px #183c2510;
+        }
+
+        .destination-image {
+            display: block;
+            width: 100%;
+            height: 205px;
+            object-fit: cover;
+            background: #dce9df;
+        }
+
+        .card-content {
+            padding: 19px;
+        }
+
+        .category {
+            color: #176b50;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-content h3 {
+            margin: 7px 0;
+            font-size: 22px;
+        }
+
+        .card-content p {
+            color: #68786d;
+            font-size: 14px;
+        }
+
+        .card-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 17px;
+            padding-top: 14px;
+            border-top: 1px solid #edf1ed;
+        }
+
+        .rating {
+            color: #a66b00;
+            font-weight: 800;
+        }
+
+        .review-count {
+            font-size: 12px;
+            color: #68786d;
+        }
+
+        .empty-state {
+            padding: 28px;
+            background: white;
+            border: 1px dashed #b8cabb;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .panel {
+            padding: 25px;
+            background: white;
+            border: 1px solid #e0e9e1;
+            border-radius: 15px;
+        }
+
+        .panel h2 {
+            margin-top: 0;
+        }
+
+        .field {
+            display: block;
+            margin-bottom: 15px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            display: block;
+            width: 100%;
+            margin-top: 6px;
+            padding: 11px;
+            border: 1px solid #d6e0d7;
+            border-radius: 8px;
+            background: #fbfdfb;
+            color: #20352a;
+        }
+
+        .field textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .review-list {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 17px;
+        }
+
+        .review-card {
+            padding: 20px;
+            background: white;
+            border: 1px solid #e0e9e1;
+            border-radius: 13px;
+        }
+
+        .review-card h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .review-card p {
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        .review-photo {
+            display: block;
+            max-width: 100%;
+            max-height: 180px;
+            margin-top: 12px;
+            border-radius: 8px;
+        }
+
+        .flash-wrap {
+            padding-top: 15px;
+        }
+
+        .flash {
+            margin: 8px 0;
+            padding: 12px 15px;
+            border-radius: 8px;
+            background: #e5f0e8;
+            color: #176b50;
+        }
+
+        .flash.error,
+        .flash.danger {
+            background: #ffeded;
+            color: #9b2929;
+        }
+
+        .flash.warning {
+            background: #fff4d8;
+            color: #795300;
+        }
+
+        footer {
+            padding: 28px 0;
+            background: #143c30;
+            color: #e0eee5;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        @media (max-width: 850px) {
+            .destination-grid,
+            .review-list {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .navbar {
+                padding: 13px 0;
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            nav {
+                gap: 13px;
+            }
+
+            .hero {
+                padding: 45px 0;
+            }
+
+            .destination-grid,
+            .review-list {
+                grid-template-columns: 1fr;
+            }
+
+            .section {
+                padding: 35px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="container navbar">
+        <a class="brand" href="/">✦ Travel Explorer</a>
+
+        <nav aria-label="Main navigation">
+            <a href="#destinations">Destinations</a>
+            <a href="#reviews">Reviews</a>
+            <a href="#suggest">Suggest a place</a>
+            <a href="#write-review">Write a review</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <section class="hero">
+        <div class="container">
+            <p>YOUR KASHMIR TRAVEL GUIDE</p>
+            <h1>Discover the beauty of Kashmir.</h1>
+            <p>
+                Explore beautiful destinations, learn about places to visit,
+                and share your travel experiences with other explorers.
+            </p>
+
+            <form class="search-form" action="/" method="get">
+                <input
+                    type="search"
+                    name="q"
+                    placeholder="Search Dal Lake, Gulmarg..."
+                    value="{{ q or '' }}"
+                    aria-label="Search destinations"
+                >
+                <button class="button" type="submit">Search places</button>
+            </form>
+        </div>
+    </section>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-wrap" aria-live="polite">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <section class="section" id="destinations">
+        <div class="container">
+            <div class="section-heading">
+                <h2>Explore destinations</h2>
+                <p class="muted">
+                    Find a place for your next Kashmir adventure.
+                </p>
+            </div>
+
+            <div class="filters">
+                <a
+                    class="filter-link {% if not category %}active{% endif %}"
+                    href="/"
+                >All places</a>
+
+                {% for item in categories %}
+                    <a
+                        class="filter-link {% if category == item %}active{% endif %}"
+                        href="/?category={{ item | urlencode }}{% if q %}&q={{ q | urlencode }}{% endif %}"
+                    >{{ item }}</a>
+                {% endfor %}
+            </div>
+
+            {% if destinations %}
+                <div class="destination-grid">
+                    {% for d in destinations %}
+                        <article class="destination-card">
+                            {% if d.image_url %}
+                                <img
+                                    class="destination-image"
+                                    src="{{ d.image_url }}"
+                                    alt="{{ d.name }}"
+                                    loading="lazy"
+                                >
+                            {% elif d.image %}
+                                <img
+                                    class="destination-image"
+                                    src="{{ url_for('static', filename=d.image) }}"
+                                    alt="{{ d.name }}"
+                                    loading="lazy"
+                                >
+                            {% else %}
+                                <div
+                                    class="destination-image"
+                                    role="img"
+                                    aria-label="No photo available for {{ d.name }}"
+                                ></div>
+                            {% endif %}
+
+                            <div class="card-content">
+                                <span class="category">
+                                    {{ d.category or 'Destination' }}
+                                </span>
+
+                                <h3>{{ d.name }}</h3>
+
+                                <p class="muted">
+                                    📍 {{ d.location }}
+                                </p>
+
+                                <p>
+                                    {{ d.description or 'Explore this beautiful destination in Kashmir.' }}
+                                </p>
+
+                                <div class="card-bottom">
+                                    <div>
+                                        <div class="rating">
+                                            ★ {{ d.rating or 'New' }}
+                                        </div>
+                                        <div class="review-count">
+                                            {{ d.review_count or 0 }} reviews
+                                        </div>
+                                    </div>
+
+                                    <a
+                                        class="button"
+                                        href="/destination/{{ d.slug }}"
+                                    >Explore →</a>
+                                </div>
+
+                                <form action="/review" method="post"
+                                      style="margin-top:18px">
+                                    <input
+                                        type="hidden"
+                                        name="destination_id"
+                                        value="{{ d.id }}"
+                                    >
+
+                                    <label class="field">
+                                        Your rating
+                                        <select name="rating" required>
+                                            <option value="5">5 - Excellent</option>
+                                            <option value="4">4 - Very good</option>
+                                            <option value="3">3 - Good</option>
+                                            <option value="2">2 - Fair</option>
+                                            <option value="1">1 - Poor</option>
+                                        </select>
+                                    </label>
+
+                                    <label class="field">
+                                        Your name
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            maxlength="80"
+                                            required
+                                            placeholder="Enter your name"
+                                        >
+                                    </label>
+
+                                    <label class="field">
+                                        Your review
+                                        <textarea
+                                            name="comment"
+                                            maxlength="1500"
+                                            required
+                                            placeholder="Share your experience..."
+                                        ></textarea>
+                                    </label>
+
+                                    <button class="button" type="submit">
+                                        Submit review
+                                    </button>
+                                </form>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>No destinations found</h3>
+                    <p>Try a different search or category.</p>
+                    <a class="button" href="/">Show all destinations</a>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="section" id="reviews">
+        <div class="container">
+            <div class="section-heading">
+                <h2>Recent traveller reviews</h2>
+                <p class="muted">
+                    Experiences shared by people exploring Kashmir.
+                </p>
+            </div>
+
+            {% if recent_reviews %}
+                <div class="review-list">
+                    {% for r in recent_reviews %}
+                        <article class="review-card">
+                            <h3>{{ r.name }}</h3>
+
+                            <div class="rating">
+                                {% for star in range(r.rating | int) %}
+                                    ★
+                                {% endfor %}
+                                {% for star in range(5 - (r.rating | int)) %}
+                                    ☆
+                                {% endfor %}
+                            </div>
+
+                            <p>{{ r.comment }}</p>
+
+                            {% if r.photo_filename %}
+                                <img
+                                    class="review-photo"
+                                    src="{{ url_for('static', filename='uploads/' ~ r.photo_filename) }}"
+                                    alt="Photo shared in a traveller review"
+                                    loading="lazy"
+                                >
+                            {% endif %}
+
+                            <p class="muted">
+                                {% if r.destination_slug %}
+                                    <a href="/destination/{{ r.destination_slug }}">
+                                        {{ r.destination_name or 'View destination' }}
+                                    </a>
+                                {% else %}
+                                    {{ r.destination_name or 'Kashmir' }}
+                                {% endif %}
+                            </p>
+
+                            <small class="muted">
+                                {{ r.created_at }}
+                            </small>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    No reviews yet. Be the first to share your experience!
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="section" id="write-review">
+        <div class="container">
+            <div class="panel">
+                <h2>Share your travel experience</h2>
+                <p class="muted">
+                    Choose a destination, leave a rating, and help other travellers.
+                </p>
+
+                <form action="/review" method="post" enctype="multipart/form-data">
+                    <label class="field">
+                        Destination
+                        <select name="destination_id" required>
+                            <option value="">Choose a destination</option>
+                            {% for d in destinations %}
+                                <option value="{{ d.id }}">{{ d.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        Your name
+                        <input
+                            type="text"
+                            name="name"
+                            maxlength="80"
+                            required
+                            placeholder="Enter your name"
+                        >
+                    </label>
+
+                    <label class="field">
+                        Rating
+                        <select name="rating" required>
+                            <option value="5">5 - Excellent</option>
+                            <option value="4">4 - Very good</option>
+                            <option value="3">3 - Good</option>
+                            <option value="2">2 - Fair</option>
+                            <option value="1">1 - Poor</option>
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        Your comments
+                        <textarea
+                            name="comment"
+                            maxlength="1500"
+                            required
+                            placeholder="What did you enjoy about this place?"
+                        ></textarea>
+                    </label>
+
+                    <label class="field">
+                        Add a photo (optional)
+                        <input
+                            type="file"
+                            name="photo"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        >
+                    </label>
+
+                    <button class="button" type="submit">Publish review</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="suggest">
+        <div class="container">
+            <div class="panel">
+                <h2>Suggest a new place</h2>
+                <p class="muted">
+                    Know a beautiful place in Kashmir that should be included?
+                    Send a suggestion for review.
+                </p>
+
+                <form action="/suggest-place" method="post"
+                      enctype="multipart/form-data">
+
+                    <label class="field">
+                        Place name
+                        <input
+                            type="text"
+                            name="name"
+                            maxlength="120"
+                            required
+                            placeholder="Name of the destination"
+                        >
+                    </label>
+
+                    <label class="field">
+                        Location
+                        <input
+                            type="text"
+                            name="location"
+                            maxlength="200"
+                            required
+                            placeholder="District or nearby town"
+                        >
+                    </label>
+
+                    <label class="field">
+                        Category
+                        <select name="category" required>
+                            <option value="">Choose a category</option>
+                            {% for item in categories %}
+                                <option value="{{ item }}">{{ item }}</option>
+                            {% endfor %}
+                            <option value="Lake">Lake</option>
+                            <option value="Mountain">Mountain</option>
+                            <option value="Valley">Valley</option>
+                            <option value="Garden">Garden</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        Google Maps link (optional)
+                        <input
+                            type="url"
+                            name="map_link"
+                            placeholder="https://maps.google.com/..."
+                        >
+                    </label>
+
+                    <label class="field">
+                        Description
+                        <textarea
+                            name="description"
+                            maxlength="1500"
+                            required
+                            placeholder="Tell us what makes this place special..."
+                        ></textarea>
+                    </label>
+
+                    <label class="field">
+                        Photo (optional)
+                        <input
+                            type="file"
+                            name="photo"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        >
+                    </label>
+
+                    <button class="button" type="submit">
+                        Submit suggestion
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="container">
+        <strong>✦ Travel Explorer</strong>
+        <p>Discover Kashmir. Share experiences. Travel responsibly.</p>
+        <small>Student project · Travel information should be verified before visiting.</small>
+    </div>
+</footer>
+
+</body>
+</html>

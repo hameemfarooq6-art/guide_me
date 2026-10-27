@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from pathlib import Path
 import sqlite3
 from werkzeug.utils import secure_filename
-
+import uuid
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / 'travel_explorer.db'
 UPLOAD_DIR = BASE_DIR / 'static' / 'uploads'
@@ -46,6 +46,17 @@ def init_db():
             rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
             comment TEXT NOT NULL,
             photo_filename TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS place_suggestions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            location TEXT NOT NULL,
+            category TEXT NOT NULL,
+            description TEXT NOT NULL,
+            map_link TEXT,
+            photo_filename TEXT,
+            status TEXT NOT NULL DEFAULT 'pending',
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )''')
         count = conn.execute('SELECT COUNT(*) FROM reviews').fetchone()[0]
@@ -112,6 +123,94 @@ def destination_detail(slug):
     destination['review_count'] = stats['total']
     destination['rating'] = round(stats['avg_rating'], 1) if stats['avg_rating'] is not None else 0
     return render_template('destination.html', destination=destination, reviews=reviews)
+
+
+@app.route('/suggest-place', methods=['POST'])
+def suggest_place():
+    name = request.form.get('name', '').strip()
+    location = request.form.get('location', '').strip()
+    category = request.form.get('category', '').strip()
+    description = request.form.get('description', '').strip()
+    map_link = request.form.get('map_link', '').strip()
+
+    allowed_categories = {
+        'Lake', 'Mountain', 'Valley',
+        'Garden', 'Waterfall', 'Other'
+    }
+
+    if not name or not location or not description:
+        flash('Please complete all required fields.', 'error')
+        return redirect(url_for('home'))
+
+    if len(name) > 100 or len(location) > 150:
+        flash('The place name or location is too long.', 'error')
+        return redirect(url_for('home'))
+
+    if len(description) < 10 or len(description) > 1000:
+        flash('Description must be between 10 and 1000 characters.', 'error')
+        return redirect(url_for('home'))
+
+    if category not in allowed_categories:
+        flash('Please choose a valid category.', 'error')
+        return redirect(url_for('home'))
+
+    if map_link and not map_link.startswith(('https://', 'http://')):
+        flash('Please enter a valid map link.', 'error')
+        return redirect(url_for('home'))
+
+    photo = request.files.get('photo')
+    photo_filename = None
+
+    if photo and photo.filename:
+        original_name = secure_filename(photo.filename)
+
+        if not original_name or '.' not in original_name:
+            flash('Please choose a valid image file.', 'error')
+            return redirect(url_for('home'))
+
+        extension = original_name.rsplit('.', 1)[1].lower()
+
+        if extension not in {'jpg', 'jpeg', 'png', 'webp'}:
+            flash('Photo must be JPG, JPEG, PNG, or WEBP.', 'error')
+            return redirect(url_for('home'))
+
+        photo.seek(0, 2)
+        photo_size = photo.tell()
+        photo.seek(0)
+
+        if photo_size > 2 * 1024 * 1024:
+            flash('Photo must be smaller than 2 MB.', 'error')
+            return redirect(url_for('home'))
+
+        photo_filename = f'{uuid.uuid4().hex}.{extension}'
+        photo.save(UPLOAD_DIR / photo_filename)
+
+    try:
+        with connect_db() as conn:
+            conn.execute(
+                '''INSERT INTO place_suggestions
+                   (name, location, category, description,
+                    map_link, photo_filename, status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                (
+                    name, location, category, description,
+                    map_link, photo_filename, 'pending'
+                )
+            )         
+            conn.commit()
+    except sqlite3.Error:
+        if photo_filename:
+            (UPLOAD_DIR / photo_filename).unlink(missing_ok=True)
+
+        app.logger.exception('Could not save place suggestion.')
+        flash('Sorry, your suggestion could not be saved.', 'error')
+        return redirect(url_for('home'))
+
+    flash(
+        'Thank you! Your place suggestion was submitted for review.',
+        'success'
+    )
+    return redirect(url_for('home'))
 
 
 @app.route('/review', methods=['POST'])
