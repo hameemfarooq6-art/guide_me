@@ -4,3 +4,5 @@ __pycache__/
 .DS_Store
 .env
 instance/
+travel_explorer.db
+travel_explorer_backup.db
