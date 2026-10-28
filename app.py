@@ -12,8 +12,28 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 app = Flask(__name__)
 app.secret_key = 'change-this-for-a-real-deployment'
 
-DESTINATIONS = [
-    {'id': 1, 'slug': 'dal-lake', 'name': 'Dal Lake', 'location': 'Srinagar, Kashmir', 'category': 'Lake', 'description': 'A serene lake known for traditional houseboats, shikaras, floating markets, and mountain reflections.', 'image': 'dal-lake.svg','image_url': 'https://images.unsplash.com/photo-1569852837213-00d97a707a83?auto=format&fit=crop&w=1200&q=85', 'lat': 34.0837, 'lng': 74.8753, 'tip': 'Try an early-morning shikara ride and check local weather before heading out.'},
+DESTINATIONS =[
+{
+    'id': 1,
+    'slug': 'dal-lake',
+    'name': 'Dal Lake',
+    'location': 'Srinagar, Kashmir',
+    'category': 'Lake',
+    'description': 'A serene lake known for traditional houseboats, shikaras, floating markets, and mountain reflections.',
+    'image': 'dal-lake.svg',
+    'image_url': 'https://images.unsplash.com/photo-1569852837213-00d97a707a83?auto=format&fit=crop&w=1200&q=85',
+    'gallery': [
+        'https://images.unsplash.com/photo-1569852837213-00d97a707a83?auto=format&fit=crop&w=1200&q=85',
+        'https://images.unsplash.com/photo-1718261225691-f0eec5874bbc?auto=format&fit=crop&w=1200&q=85',
+        'https://images.unsplash.com/photo-1699382726677-e489c4b6e7ca?auto=format&fit=crop&w=1200&q=85',
+        'https://images.unsplash.com/photo-1643449416258-5c8e7ec598b1?auto=format&fit=crop&w=1200&q=85',
+        'https://images.unsplash.com/photo-1747672474279-c6f5d2b4e67d?auto=format&fit=crop&w=1200&q=85',
+        'https://images.unsplash.com/photo-1626012871654-33fd43d88a54?auto=format&fit=crop&w=1200&q=85'
+    ],
+    'lat': 34.0837,
+    'lng': 74.8753,
+    'tip': 'Try an early-morning shikara ride and check local weather before heading out.'
+},
     {'id': 2, 'slug': 'gulmarg', 'name': 'Gulmarg', 'location': 'Baramulla, Kashmir', 'category': 'Mountain', 'description': 'A high-altitude getaway known for wide meadows, snowy winters, mountain views, and the gondola.', 'image':'gulmarg.svg',
 'image_url': 'https://images.unsplash.com/photo-1771761597326-a1a418653554?auto=format&fit=crop&w=1200&q=85',
 'lat': 34.0484, 'lng': 74.3805, 'tip': 'Weather can change quickly. Check gondola operations and road conditions before travel.'},
@@ -283,6 +303,10 @@ def suggest_place():
 
 @app.route('/review', methods=['POST'])
 def add_review():
+    if 'user_id' not in session:
+        flash('Please log in before submitting a review.', 'error')
+        return redirect(url_for('login'))
+
     try:
         destination_id = int(request.form.get('destination_id', '0'))
         rating = int(request.form.get('rating', '0'))
