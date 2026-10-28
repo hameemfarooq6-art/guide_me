@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
 import sqlite3
 from werkzeug.utils import secure_filename
@@ -59,6 +60,13 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'pending',
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''')
         count = conn.execute('SELECT COUNT(*) FROM reviews').fetchone()[0]
         if count == 0:
             conn.executemany('INSERT INTO reviews (destination_id,name,rating,comment) VALUES (?,?,?,?)', [
@@ -108,6 +116,65 @@ def home():
         item['destination_slug'] = place.get('slug', 'dal-lake')
         recent_reviews.append(item)
     return render_template('index.html', destinations=destinations, recent_reviews=recent_reviews, q=search, category=category, categories=['All','Lake','Mountain','Valley','Garden'])
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+
+        if not name or not email or len(password) < 8:
+            flash('Enter your name and email, and use a password of at least 8 characters.')
+            return redirect(url_for('register'))
+
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            conn.execute(
+                'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
+                (name, email, generate_password_hash(password))
+            )
+            conn.commit()
+            flash('Account created! You can now log in.')
+            return redirect(url_for('login'))
+        except sqlite3.IntegrityError:
+            flash('That email is already registered. Please log in.')
+            return redirect(url_for('login'))
+        finally:
+            conn.close()
+
+    return render_template('register.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        user = conn.execute(
+            'SELECT * FROM users WHERE email = ?', (email,)
+        ).fetchone()
+        conn.close()
+
+        if user and check_password_hash(user['password_hash'], password):
+            session['user_id'] = user['id']
+            session['user_name'] = user['name']
+            flash('Login successful!')
+            return redirect(url_for('home'))
+
+        flash('Invalid email or password.')
+        return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('You have been logged out.')
+    return redirect(url_for('home'))
 
 
 @app.route('/destination/<slug>')
@@ -185,6 +252,7 @@ def suggest_place():
         photo_filename = f'{uuid.uuid4().hex}.{extension}'
         photo.save(UPLOAD_DIR / photo_filename)
 
+    
     try:
         with connect_db() as conn:
             conn.execute(
@@ -196,7 +264,7 @@ def suggest_place():
                     name, location, category, description,
                     map_link, photo_filename, 'pending'
                 )
-            )         
+            )
             conn.commit()
     except sqlite3.Error:
         if photo_filename:

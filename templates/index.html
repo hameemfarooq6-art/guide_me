@@ -392,9 +392,20 @@
             <a href="#reviews">Reviews</a>
             <a href="#suggest">Suggest a place</a>
             <a href="#write-review">Write a review</a>
+
+            {% if session.get('user_id') %}
+                <span>
+                    Welcome, {{ session.get('user_name') }}!
+                </span>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
         </nav>
     </div>
 </header>
+
 
 <main>
     <section class="hero">
